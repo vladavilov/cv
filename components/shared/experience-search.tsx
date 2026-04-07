@@ -36,7 +36,7 @@ export function ExperienceSearch({
         onChange={(event) => onChange(event.target.value)}
         autoComplete="off"
         spellCheck={false}
-        placeholder="Ask about agentic systems, fine-tuning, RAG…"
+        placeholder="Ask about Vlad's experience, projects, skills, …"
         className="min-w-0 flex-1 bg-transparent text-[15px] text-foreground placeholder:text-[#5e5d59] focus:outline-none"
       />
       <button
