@@ -1,0 +1,108 @@
+{
+  "nodes": [
+    {
+      "id": "langgraph",
+      "label": "LangGraph",
+      "category": "AI & ML",
+      "val": 9
+    },
+    {
+      "id": "rag",
+      "label": "RAG",
+      "category": "AI & ML",
+      "val": 8
+    },
+    {
+      "id": "fine-tuning",
+      "label": "Fine-tuning",
+      "category": "AI & ML",
+      "val": 8
+    },
+    {
+      "id": "agentic-ai",
+      "label": "Agentic AI",
+      "category": "AI & ML",
+      "val": 9
+    },
+    {
+      "id": "java",
+      "label": "Java",
+      "category": "Languages",
+      "val": 10
+    },
+    {
+      "id": "python",
+      "label": "Python",
+      "category": "Languages",
+      "val": 8
+    },
+    {
+      "id": "typescript",
+      "label": "TypeScript",
+      "category": "Languages",
+      "val": 9
+    },
+    {
+      "id": "nextjs",
+      "label": "Next.js",
+      "category": "Frontend",
+      "val": 7
+    },
+    {
+      "id": "react",
+      "label": "React",
+      "category": "Frontend",
+      "val": 8
+    },
+    {
+      "id": "spring-boot",
+      "label": "Spring Boot",
+      "category": "Backend",
+      "val": 9
+    },
+    {
+      "id": "neo4j",
+      "label": "Neo4j",
+      "category": "Backend",
+      "val": 7
+    },
+    {
+      "id": "kafka",
+      "label": "Kafka",
+      "category": "Backend",
+      "val": 8
+    },
+    {
+      "id": "docker",
+      "label": "Docker",
+      "category": "DevOps",
+      "val": 7
+    },
+    {
+      "id": "microservices",
+      "label": "Microservices",
+      "category": "Backend",
+      "val": 9
+    }
+  ],
+  "links": [
+    { "source": "langgraph", "target": "agentic-ai" },
+    { "source": "langgraph", "target": "python" },
+    { "source": "rag", "target": "neo4j" },
+    { "source": "rag", "target": "python" },
+    { "source": "rag", "target": "agentic-ai" },
+    { "source": "fine-tuning", "target": "python" },
+    { "source": "agentic-ai", "target": "python" },
+    { "source": "agentic-ai", "target": "typescript" },
+    { "source": "java", "target": "spring-boot" },
+    { "source": "java", "target": "kafka" },
+    { "source": "java", "target": "microservices" },
+    { "source": "typescript", "target": "nextjs" },
+    { "source": "typescript", "target": "react" },
+    { "source": "spring-boot", "target": "kafka" },
+    { "source": "spring-boot", "target": "microservices" },
+    { "source": "docker", "target": "microservices" },
+    { "source": "neo4j", "target": "java" },
+    { "source": "nextjs", "target": "react" }
+  ]
+}

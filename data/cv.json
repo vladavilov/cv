@@ -1,0 +1,122 @@
+{
+  "projects": [
+    {
+      "id": "caesar-trading-platform",
+      "title": "Caesar Wealth Management Trading Platform",
+      "company": "UBS",
+      "period": "Jul 2019 – Present",
+      "summary": "Technical leadership of a large-scale wealth management trading platform managing the full trading flow across 20+ applications: quoting, orders, trades reporting, and execution.",
+      "logic": "Microservices ecosystem with event-driven integrations via Kafka, FIX protocol, Avro, and gRPC spanning the entire trade lifecycle.",
+      "metrics": {
+        "services": "20+",
+        "team": "10+ engineers",
+        "tenure": "6 years"
+      },
+      "stack": ["Java", "Spring Boot", "TypeScript", "Kafka", "gRPC", "Avro"],
+      "activeSkills": ["Java", "Spring Boot", "TypeScript", "Kafka", "Microservices"],
+      "trace": ["Architecture ownership", "Event-driven design", "Legacy migration", "Spec-driven delivery"],
+      "responsibilities": [
+        "Owned technical strategy and architecture across 20+ services in a microservices ecosystem",
+        "Designed and maintained event-driven integrations (Kafka, FIX, Avro, gRPC) spanning the entire trade lifecycle",
+        "Introduced spec-driven development process across the program with AI-assisted delivery",
+        "Led migration of legacy JavaScript UIs to modern TypeScript with improved UX"
+      ],
+      "featured": true
+    },
+    {
+      "id": "agentic-ai-requirements",
+      "title": "Agentic AI Requirements Engineering System",
+      "company": "UBS",
+      "period": "2023 – Present",
+      "summary": "Cloud-native microservices platform (15+ services, Azure) that transforms feature descriptions into structured requirements and actionable task breakdowns using orchestrated AI experts and GraphRAG.",
+      "logic": "Ensemble-of-experts pattern with Neo4j knowledge graphs, vector embeddings (3072 dims, cosine similarity), and multi-source document ingestion for context-aware generation.",
+      "metrics": {
+        "services": "15+",
+        "embeddings": "3072 dims",
+        "sources": "PDF/DOCX/XLSX/JIRA/GitLab"
+      },
+      "stack": ["LangGraph", "Python", "Neo4j", "Azure", "SSE"],
+      "activeSkills": ["LangGraph", "Agentic AI", "RAG", "Python", "Neo4j"],
+      "trace": ["Knowledge ingestion", "Graph RAG retrieval", "EoE generation", "GitLab sync"],
+      "responsibilities": [
+        "Implemented ensemble-of-experts pattern for requirements generation with score-based self-evaluation",
+        "Built Graph RAG context retrieval backed by Neo4j knowledge graphs with vector embeddings",
+        "Engineered multi-source knowledge ingestion pipeline processing PDF, DOCX, XLSX, JIRA, and GitLab repos",
+        "Developed INVEST-compliant task breakdown with duplicate detection against existing backlogs",
+        "Integrated directly with GitLab for epic/issue creation with OAuth and bidirectional sync",
+        "Implemented real-time progress streaming via SSE for live agent thought visualization"
+      ],
+      "featured": true
+    },
+    {
+      "id": "ai-automation-tooling",
+      "title": "AI & Automation Tooling",
+      "company": "UBS",
+      "period": "2022 – Present",
+      "summary": "Suite of AI-powered developer tools: fine-tuned LLMs for test generation, automated document processing, MCP server integration, and reusable CI/CD components for code review and quality.",
+      "logic": "Fine-tuned models for Playwright test creation, OCR-based PDF processing, and TypeScript MCP servers connecting agentic systems to GitLab CI/CD.",
+      "metrics": {
+        "tools": "4 shipped",
+        "coverage": "Code review + UI testing + triage + quality fixes",
+        "integration": "GitLab CI/CD"
+      },
+      "stack": ["Python", "TypeScript", "Playwright", "Docker", "GitLab CI/CD"],
+      "activeSkills": ["Fine-tuning", "Python", "TypeScript", "Docker"],
+      "trace": ["Model fine-tuning", "MCP integration", "CI/CD components", "Document processing"],
+      "responsibilities": [
+        "Fine-tuned LLMs to automate Playwright end-to-end test creation",
+        "Built Python microservice for automated processing and retrieval from unstructured PDFs using OCR and AI",
+        "Developed TypeScript MCP server integrating agentic systems into GitLab CI/CD pipelines",
+        "Created reusable CI/CD components for automatic code review, UI testing, test failure triage, and quality fixes"
+      ],
+      "featured": false
+    },
+    {
+      "id": "luxoft-financial-services",
+      "title": "Financial Services Platform Engineering",
+      "company": "Luxoft",
+      "period": "Oct 2010 – Jun 2019",
+      "summary": "Designed and implemented Java/JavaScript application architectures for financial services clients. Owned the full delivery cycle from requirements gathering to production deployment, leading a team of 10+ engineers.",
+      "logic": "Full-cycle SOA architecture delivery for banking clients with CI/CD infrastructure and cross-discipline team leadership.",
+      "metrics": {
+        "team": "10+ developers",
+        "tenure": "8 yrs 9 mos",
+        "scope": "Full delivery cycle"
+      },
+      "stack": ["Java", "JavaScript", "Spring Boot", "CI/CD"],
+      "activeSkills": ["Java", "Spring Boot", "Microservices"],
+      "trace": ["Requirements", "Architecture", "Implementation", "Deployment"],
+      "responsibilities": [
+        "Led a team of 10+ developers and QA engineers across multiple financial service projects",
+        "Built core components and frameworks for financial applications",
+        "Designed and maintained CI/CD infrastructure pipelines",
+        "Acted as primary client liaison, translating business requirements into functional specifications",
+        "Mentored team members across engineering and QA disciplines"
+      ],
+      "featured": false
+    },
+    {
+      "id": "early-career-engineering",
+      "title": "Full-Stack Engineering & Team Leadership",
+      "company": "Various (Successful Dev, TopDev Group, ameria GmbH)",
+      "period": "Sep 2007 – Oct 2010",
+      "summary": "Progressed from developer to project manager across multiple companies, designing application architectures and leading small teams for PHP, Flex, and early Java web projects.",
+      "logic": "End-to-end application delivery including architecture design, client-server communication layers, domain modeling, and team management.",
+      "metrics": {
+        "roles": "Developer → PM",
+        "tenure": "3 years",
+        "teams": "2–5 engineers"
+      },
+      "stack": ["Java", "PHP", "ActionScript", "JavaScript"],
+      "activeSkills": ["Java"],
+      "trace": ["Architecture design", "Team leadership", "Client delivery", "Domain modeling"],
+      "responsibilities": [
+        "Managed teams of 2–5 developers with direct client communication",
+        "Designed application architectures and implemented core UI and server components",
+        "Defined business requirements and produced functional specifications",
+        "Implemented data transfer protocols and database structures"
+      ],
+      "featured": false
+    }
+  ]
+}
