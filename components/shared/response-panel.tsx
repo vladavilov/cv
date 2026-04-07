@@ -1,7 +1,10 @@
 "use client";
 
+import type { Components } from "react-markdown";
+
 import { Bot, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import Markdown from "react-markdown";
 
 import { ThoughtTrace, type ThoughtTraceStep } from "@/components/shared/thought-trace";
 
@@ -11,6 +14,27 @@ type ResponsePanelProps = {
   isStreaming: boolean;
   steps: ThoughtTraceStep[];
   onClose: () => void;
+};
+
+const markdownComponents: Components = {
+  p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+  strong: ({ children }) => <strong className="font-semibold text-[#e3e2de]">{children}</strong>,
+  ul: ({ children }) => <ul className="mb-3 ml-4 list-disc space-y-1.5 last:mb-0">{children}</ul>,
+  ol: ({ children }) => <ol className="mb-3 ml-4 list-decimal space-y-1.5 last:mb-0">{children}</ol>,
+  li: ({ children }) => <li className="pl-1">{children}</li>,
+  code: ({ children }) => (
+    <code className="rounded bg-[#30302e] px-1.5 py-0.5 text-[13px] text-[#c96442]">{children}</code>
+  ),
+  a: ({ href, children }) => (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="text-[#c96442] underline underline-offset-2 transition-colors hover:text-[#d97757]"
+    >
+      {children}
+    </a>
+  ),
 };
 
 const focusableSelector = [
@@ -188,8 +212,8 @@ export function ResponsePanel({
           <div className="sr-only" aria-live="polite" aria-atomic="true">
             {announcedResponse}
           </div>
-          <div className="text-[15px] leading-relaxed text-[#b0aea5]" aria-live="off">
-            {response}
+          <div className="response-prose text-[15px] leading-relaxed text-[#b0aea5]" aria-live="off">
+            <Markdown components={markdownComponents}>{response}</Markdown>
             {isStreaming && (
               <span className="ml-1 inline-block size-1.5 animate-pulse rounded-full bg-[#c96442] align-middle" />
             )}

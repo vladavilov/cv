@@ -129,7 +129,7 @@ export async function POST(request: Request) {
         { role: "user", content: cvPrompt.user },
       ],
       temperature: 0.3,
-      max_completion_tokens: 512,
+      max_completion_tokens: 4096,
       top_p: 1,
       stream: true,
       reasoning_effort: "high",
