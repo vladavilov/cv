@@ -8,6 +8,7 @@ type ContactCtaProps = {
 
 export function ContactCta({ content }: ContactCtaProps) {
   return (
+    <footer>
     <section id="contact" aria-labelledby="contact-heading" className="section-shell pb-16 md:pb-24">
       <div className="page-shell">
         <div className="rounded-lg border border-[#30302e] bg-[#30302e] p-5 md:p-6">
@@ -41,5 +42,6 @@ export function ContactCta({ content }: ContactCtaProps) {
         </div>
       </div>
     </section>
+    </footer>
   );
 }

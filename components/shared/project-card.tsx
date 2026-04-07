@@ -5,15 +5,15 @@ import type { Project } from "@/lib/types";
 
 type ProjectCardProps = {
   project: Project;
-  isHighlighted: boolean;
   isDimmed: boolean;
+  showMatchEmphasis: boolean;
   index: number;
 };
 
 export function ProjectCard({
   project,
-  isHighlighted,
   isDimmed,
+  showMatchEmphasis,
   index,
 }: ProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -21,22 +21,31 @@ export function ProjectCard({
   return (
     <motion.article
       layout={!shouldReduceMotion}
+      aria-current={showMatchEmphasis ? "true" : undefined}
       initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 20 }}
       whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      whileHover={shouldReduceMotion ? undefined : { y: -4 }}
+      whileHover={shouldReduceMotion || isDimmed ? undefined : { y: -4 }}
       transition={{
         duration: shouldReduceMotion ? 0 : 0.28,
         ease: "easeOut",
         delay: shouldReduceMotion ? 0 : index * 0.05,
       }}
-      className={cn("h-full", isDimmed && "opacity-45")}
+      className={cn(
+        "h-full",
+        isDimmed && "opacity-[0.42] saturate-[0.55]",
+        showMatchEmphasis && !shouldReduceMotion && "relative z-[1]",
+      )}
     >
       <div
         className={cn(
-          "flex h-full flex-col rounded-lg border border-[#30302e] bg-[#30302e] p-5 transition-[opacity,border-color,box-shadow] md:p-6",
-          isHighlighted &&
-            "border-[#c96442]/40 shadow-[0_0_0_1px_rgba(201,100,66,0.18)]",
+          "relative flex h-full flex-col overflow-hidden rounded-lg border bg-[#30302e] p-5 transition-[border-color,box-shadow,background-color,filter] duration-200 md:p-6",
+          !showMatchEmphasis && !isDimmed && "border-[#30302e]",
+          showMatchEmphasis &&
+            "border-[#c96442]/75 bg-[#2f2e2b] shadow-[0_0_0_1px_rgba(201,100,66,0.4),0_18px_48px_-10px_rgba(201,100,66,0.2),0_10px_28px_-12px_rgba(0,0,0,0.4)]",
+          showMatchEmphasis &&
+            "before:pointer-events-none before:absolute before:inset-y-3 before:left-0 before:w-1 before:rounded-r before:bg-[#c96442] before:content-['']",
+          isDimmed && "border-[#252524] bg-[#222120]",
         )}
       >
         <div className="mb-2 flex items-center gap-3">

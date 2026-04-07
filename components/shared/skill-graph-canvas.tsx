@@ -116,15 +116,22 @@ export function SkillGraphCanvas({
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {skillGraph.nodes.map((node) => (
-            <div
+            <button
               key={node.id}
-              className="rounded-lg border border-[#3d3d3a] bg-[#141413] p-4"
+              type="button"
+              onClick={() => onFilterChange(node.label)}
+              aria-pressed={activeFilter === node.label}
+              className={
+                activeFilter === node.label
+                  ? "rounded-lg border border-[#c96442]/30 bg-[#c96442]/10 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  : "rounded-lg border border-[#3d3d3a] bg-[#141413] p-4 text-left transition-colors hover:border-[#5e5d59] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              }
             >
               <p className="text-sm font-medium text-foreground">{node.label}</p>
               <p className="mt-1 text-xs uppercase tracking-[0.5px] text-[#87867f]">
                 {node.category}
               </p>
-            </div>
+            </button>
           ))}
         </div>
       </div>
@@ -189,8 +196,10 @@ export function SkillGraphCanvas({
             onHoverChange(currentNode ? String(currentNode.id ?? "") : null);
           }}
           onNodeClick={(node) => {
+            const id = getNodeId(node);
+            const canonical = skillGraph.nodes.find((n) => n.id === id);
             const currentNode = node as GraphNodeObject;
-            onFilterChange(currentNode.label);
+            onFilterChange(canonical?.label ?? currentNode.label);
           }}
           nodeCanvasObject={(node, ctx, globalScale) => {
             const currentNode = node as GraphNodeObject;
@@ -227,15 +236,20 @@ export function SkillGraphCanvas({
           }}
           nodePointerAreaPaint={(node, color, ctx) => {
             const currentNode = node as GraphNodeObject;
+            const radius = Math.max(currentNode.val, 6);
+            const cx = currentNode.x ?? 0;
+            const cy = currentNode.y ?? 0;
+            const fontSize = 12;
+            ctx.font = `500 ${fontSize}px Geist, sans-serif`;
+            const labelWidth = ctx.measureText(currentNode.label).width;
+            const left = cx - radius - 6;
+            const right = cx + radius + 8 + labelWidth + 6;
+            const top = cy - Math.max(radius, fontSize * 0.6) - 6;
+            const bottom = cy + Math.max(radius, fontSize * 0.6) + 6;
+
             ctx.fillStyle = color;
             ctx.beginPath();
-            ctx.arc(
-              currentNode.x ?? 0,
-              currentNode.y ?? 0,
-              Math.max(currentNode.val, 6) + 8,
-              0,
-              2 * Math.PI,
-            );
+            ctx.rect(left, top, right - left, bottom - top);
             ctx.fill();
           }}
         />

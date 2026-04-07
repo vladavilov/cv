@@ -1,5 +1,14 @@
 import type { Project } from "@/lib/types";
 
+/** Skill graph labels must match projects via active skills and/or stack tags (graph nodes like React often appear only in stack). */
+export function projectMatchesSkillLabel(project: Project, skillLabel: string): boolean {
+  if (project.activeSkills.includes(skillLabel)) {
+    return true;
+  }
+
+  return project.stack.some((tech) => tech === skillLabel);
+}
+
 type SkillKeyword = {
   skill: string;
   label: string;
@@ -182,7 +191,7 @@ export function sortProjectsForDisplay(
 
   if (activeFilter) {
     projects
-      .filter((project) => project.activeSkills.includes(activeFilter))
+      .filter((project) => projectMatchesSkillLabel(project, activeFilter))
       .forEach((project) => highlightSet.add(project.id));
   }
 

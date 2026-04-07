@@ -3,6 +3,7 @@
 import type { Components } from "react-markdown";
 
 import { Bot, X } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 
@@ -63,6 +64,7 @@ export function ResponsePanel({
   steps,
   onClose,
 }: ResponsePanelProps) {
+  const shouldReduceMotion = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const previousFocusRef = useRef<HTMLElement | null>(null);
@@ -164,9 +166,9 @@ export function ResponsePanel({
     <>
       {/* Backdrop */}
       <div
-        className={`fixed inset-0 z-[60] bg-black/40 transition-opacity duration-300 ${
-          open ? "opacity-100" : "pointer-events-none opacity-0"
-        }`}
+        className={`fixed inset-0 z-[60] bg-black/40 ${
+          shouldReduceMotion ? "" : "transition-opacity duration-300 "
+        }${open ? "opacity-100" : "pointer-events-none opacity-0"}`}
         onClick={handleBackdropClick}
         aria-hidden="true"
       />
@@ -180,9 +182,9 @@ export function ResponsePanel({
         aria-hidden={!open}
         inert={!open}
         tabIndex={-1}
-        className={`fixed right-0 top-0 z-[70] flex h-full w-full max-w-[600px] flex-col border-l border-[#30302e] bg-[#141413] shadow-[-8px_0_40px_rgba(0,0,0,0.4)] transition-transform duration-300 ease-out ${
-          open ? "translate-x-0" : "pointer-events-none translate-x-full"
-        }`}
+        className={`fixed right-0 top-0 z-[70] flex h-full w-full max-w-[600px] flex-col border-l border-[#30302e] bg-[#141413] shadow-[-8px_0_40px_rgba(0,0,0,0.4)] ${
+          shouldReduceMotion ? "" : "transition-transform duration-300 ease-out "
+        }${open ? "translate-x-0" : "pointer-events-none translate-x-full"}`}
       >
         {/* Header */}
         <div className="flex shrink-0 items-center justify-between border-b border-[#30302e] px-6 py-4">
@@ -214,9 +216,12 @@ export function ResponsePanel({
           </div>
           <div className="response-prose text-[15px] leading-relaxed text-[#b0aea5]" aria-live="off">
             <Markdown components={markdownComponents}>{response}</Markdown>
-            {isStreaming && (
+            {isStreaming && !shouldReduceMotion ? (
               <span className="ml-1 inline-block size-1.5 animate-pulse rounded-full bg-[#c96442] align-middle" />
-            )}
+            ) : null}
+            {isStreaming && shouldReduceMotion ? (
+              <span className="sr-only">Streaming response.</span>
+            ) : null}
           </div>
         </div>
       </aside>

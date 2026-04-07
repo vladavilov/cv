@@ -5,15 +5,16 @@ import type { Project } from "@/lib/types";
 
 type FeaturedProjectCardProps = {
   project: Project;
-  isHighlighted: boolean;
   isDimmed: boolean;
+  /** Strong “matches filter” styling when the grid is narrowed by search/skills */
+  showMatchEmphasis: boolean;
   index: number;
 };
 
 export function FeaturedProjectCard({
   project,
-  isHighlighted,
   isDimmed,
+  showMatchEmphasis,
   index,
 }: FeaturedProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
@@ -21,22 +22,31 @@ export function FeaturedProjectCard({
   return (
     <motion.article
       layout={!shouldReduceMotion}
+      aria-current={showMatchEmphasis ? "true" : undefined}
       initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
       whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      whileHover={shouldReduceMotion ? undefined : { y: -6 }}
+      whileHover={shouldReduceMotion || isDimmed ? undefined : { y: -6 }}
       transition={{
         duration: shouldReduceMotion ? 0 : 0.32,
         ease: "easeOut",
         delay: shouldReduceMotion ? 0 : index * 0.07,
       }}
-      className={cn("h-full", isDimmed && "opacity-45")}
+      className={cn(
+        "h-full",
+        isDimmed && "opacity-[0.42] saturate-[0.55]",
+        showMatchEmphasis && !shouldReduceMotion && "relative z-[1]",
+      )}
     >
       <div
         className={cn(
-          "flex h-full flex-col rounded-lg border border-[#30302e] bg-[#30302e] p-5 transition-[opacity,border-color,box-shadow] md:p-6",
-          isHighlighted &&
-            "border-[#c96442]/45 shadow-[0_0_0_1px_rgba(201,100,66,0.18),0_18px_60px_rgba(201,100,66,0.08)]",
+          "relative flex h-full flex-col overflow-hidden rounded-lg border bg-[#30302e] p-5 transition-[border-color,box-shadow,background-color,filter] duration-200 md:p-6",
+          !showMatchEmphasis && !isDimmed && "border-[#30302e]",
+          showMatchEmphasis &&
+            "border-[#c96442]/80 bg-[#2f2e2b] shadow-[0_0_0_1px_rgba(201,100,66,0.45),0_24px_64px_-8px_rgba(201,100,66,0.22),0_12px_32px_-12px_rgba(0,0,0,0.45)]",
+          showMatchEmphasis &&
+            "before:pointer-events-none before:absolute before:inset-y-4 before:left-0 before:w-1 before:rounded-r before:bg-[#c96442] before:content-['']",
+          isDimmed && "border-[#252524] bg-[#222120]",
         )}
       >
         <div className="mb-3 flex items-center gap-3">

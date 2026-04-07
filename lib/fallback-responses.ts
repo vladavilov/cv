@@ -1,3 +1,5 @@
+import type { ChatRequest } from "@/lib/chat";
+
 type FallbackResponseArgs = {
   prompt: string;
   activeFilter?: string | null;
@@ -7,6 +9,24 @@ type FallbackResponseArgs = {
     summary: string;
   }>;
 };
+
+/** Deterministic copy for degraded API paths; uses ranked `projects` from the client when present. */
+export function getChatFallbackFromRequest(
+  body: Pick<ChatRequest, "prompt" | "activeFilter" | "matchedSkills" | "projects">,
+): string {
+  const projects =
+    body.projects?.map((project) => ({
+      title: project.title,
+      summary: project.summary,
+    })) ?? [];
+
+  return createFallbackResponse({
+    prompt: body.prompt,
+    activeFilter: body.activeFilter ?? null,
+    matchedSkills: body.matchedSkills ?? [],
+    projects,
+  });
+}
 
 export function createFallbackResponse({
   prompt,

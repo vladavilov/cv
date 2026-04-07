@@ -10,10 +10,12 @@ import { ProofLinksPanel } from "@/components/shared/proof-links-panel";
 import { ResponsePanel } from "@/components/shared/response-panel";
 import { StatusHeader } from "@/components/shared/status-header";
 import type { ThoughtTraceStep } from "@/components/shared/thought-trace";
+import { getChatFallbackFromRequest } from "@/lib/fallback-responses";
 import {
   getProjectsByMatchedOrder,
   getPromptSuggestions,
   matchProjects,
+  projectMatchesSkillLabel,
   sortProjectsForDisplay,
 } from "@/lib/query-matching";
 import type {
@@ -29,6 +31,9 @@ const traceLabels = [
   "Filtering projects",
   "Preparing response",
 ] as const;
+
+/** No real project id; forces the grid into “filter active” mode when no role matches the skill. */
+const NO_SKILL_MATCH_ID = "__portfolio_no_skill_match__";
 
 type PortfolioExperienceProps = {
   projects: Project[];
@@ -121,6 +126,13 @@ export function PortfolioExperience({
       timeoutsRef.current.push(finishTimeout);
 
       const matchedProjects = getProjectsByMatchedOrder(projects, result.matchedProjectIds);
+      const chatRequestPayload = {
+        prompt: normalized,
+        activeFilter: nextFilter,
+        matchedSkills: result.matchedSkills,
+        projects: matchedProjects,
+      };
+      const fallbackMessage = () => getChatFallbackFromRequest(chatRequestPayload);
 
       void (async () => {
         try {
@@ -129,12 +141,7 @@ export function PortfolioExperience({
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              prompt: normalized,
-              activeFilter: nextFilter,
-              matchedSkills: result.matchedSkills,
-              projects: matchedProjects,
-            }),
+            body: JSON.stringify(chatRequestPayload),
           });
 
           if (!apiResponse.ok || !apiResponse.body) {
@@ -164,11 +171,11 @@ export function PortfolioExperience({
           streamedText += decoder.decode();
 
           if (!streamedText.trim()) {
-            setResponse(result.response);
+            setResponse(fallbackMessage());
           }
         } catch {
           if (requestIdRef.current === nextRequestId) {
-            setResponse(result.response);
+            setResponse(fallbackMessage());
           }
         } finally {
           if (requestIdRef.current === nextRequestId) {
@@ -185,9 +192,13 @@ export function PortfolioExperience({
     const ids = new Set(matchedProjectIds);
 
     if (activeFilter) {
-      projects
-        .filter((project) => project.activeSkills.includes(activeFilter))
-        .forEach((project) => ids.add(project.id));
+      const skillMatches = projects.filter((project) =>
+        projectMatchesSkillLabel(project, activeFilter),
+      );
+      skillMatches.forEach((project) => ids.add(project.id));
+      if (skillMatches.length === 0 && matchedProjectIds.length === 0) {
+        ids.add(NO_SKILL_MATCH_ID);
+      }
     }
 
     return Array.from(ids);

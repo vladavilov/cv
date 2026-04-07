@@ -1,20 +1,20 @@
 import Groq from "groq-sdk";
-import { z } from "zod";
 
 import { buildCvSearchPrompt, INTENT_SYSTEM_PROMPT } from "@/lib/ai";
-import { chatRequestSchema, type ChatRequest } from "@/lib/chat";
+import { chatRequestSchema, isLikelyPortfolioQuestion, type ChatRequest } from "@/lib/chat";
+import { getChatFallbackFromRequest } from "@/lib/fallback-responses";
+import { parseModelIntentJson } from "@/lib/intent-model";
 
 export const maxDuration = 30;
 
 const INTENT_MODEL = "openai/gpt-oss-20b";
 const CV_SEARCH_MODEL = "openai/gpt-oss-120b";
 
-const intentSchema = z.object({
-  intent: z.enum(["CV_PERSON_QUESTION", "OTHER"]),
-});
-
 const REJECTION_MESSAGE =
   "Intent analysis shows that this question is not related to Vladyslav Avilov's CV. It is better to use general-purpose models for such questions — this is the place to explore CV information, skills, and career history.";
+
+const NON_PORTFOLIO_WITHOUT_AI =
+  "Ask about Vladyslav's experience, projects, skills, or career on this site — detailed AI answers need the assistant service, which is not available right now.";
 
 function textStreamResponse(text: string) {
   const encoder = new TextEncoder();
@@ -34,6 +34,14 @@ function textStreamResponse(text: string) {
   });
 }
 
+function streamFallbackOrRejection(body: ChatRequest) {
+  if (isLikelyPortfolioQuestion(body)) {
+    return textStreamResponse(getChatFallbackFromRequest(body));
+  }
+
+  return textStreamResponse(NON_PORTFOLIO_WITHOUT_AI);
+}
+
 export async function POST(request: Request) {
   const requestId = crypto.randomUUID().slice(0, 8);
   const start = Date.now();
@@ -49,8 +57,6 @@ export async function POST(request: Request) {
     return new Response("Request body must be valid JSON.", { status: 400 });
   }
 
-  log("raw_body", { rawBody });
-
   const parsedBody = chatRequestSchema.safeParse(rawBody);
 
   if (!parsedBody.success) {
@@ -61,7 +67,12 @@ export async function POST(request: Request) {
   const body = parsedBody.data as ChatRequest;
   const prompt = body.prompt.trim();
 
-  log("parsed_input", { prompt, promptLength: prompt.length });
+  log("parsed_input", {
+    promptLength: prompt.length,
+    projectCount: body.projects?.length ?? 0,
+    hasActiveFilter: Boolean(body.activeFilter),
+    matchedSkillCount: body.matchedSkills?.length ?? 0,
+  });
 
   if (!prompt) {
     log("empty_prompt");
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
 
   if (!process.env.GROQ_API_KEY) {
     log("missing_api_key");
-    return new Response("AI search is temporarily unavailable.", { status: 503 });
+    return streamFallbackOrRejection(body);
   }
 
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
@@ -94,20 +105,20 @@ export async function POST(request: Request) {
     });
 
     const intentRaw = intentCompletion.choices[0]?.message?.content ?? "";
-    log("intent_raw", {
+    log("intent_done", {
       model: INTENT_MODEL,
-      content: intentRaw,
+      intentRawLength: intentRaw.length,
       usage: intentCompletion.usage,
     });
 
-    const intentParsed = intentSchema.safeParse(JSON.parse(intentRaw));
+    const intentParsed = parseModelIntentJson(intentRaw);
 
-    if (!intentParsed.success) {
-      log("intent_parse_error", { content: intentRaw, issues: intentParsed.error.issues });
-      return new Response("Something went wrong — please try again.", { status: 502 });
+    if (!intentParsed) {
+      log("intent_parse_error", { intentRawLength: intentRaw.length });
+      return streamFallbackOrRejection(body);
     }
 
-    const intent = intentParsed.data.intent;
+    const intent = intentParsed.intent;
     log("intent_result", { intent });
 
     if (intent !== "CV_PERSON_QUESTION") {
@@ -119,7 +130,7 @@ export async function POST(request: Request) {
     log("cv_search_start", {
       model: CV_SEARCH_MODEL,
       systemLength: cvPrompt.system.length,
-      userPrompt: cvPrompt.user,
+      userPromptLength: cvPrompt.user.length,
     });
 
     const stream = await groq.chat.completions.create({
@@ -169,6 +180,6 @@ export async function POST(request: Request) {
       message: error instanceof Error ? error.message : String(error),
       name: error instanceof Error ? error.name : undefined,
     });
-    return new Response("Something went wrong — please try again.", { status: 502 });
+    return streamFallbackOrRejection(body);
   }
 }

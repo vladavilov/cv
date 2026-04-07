@@ -32,19 +32,24 @@ export function BentoGrid({ projects, highlightedIds }: BentoGridProps) {
             Roles reorder and highlight based on search and skill graph
             interactions.
           </p>
+          {hasHighlights ? (
+            <p className="sr-only" aria-live="polite">
+              Filter active: matching roles use a warm border and left accent; other roles are
+              de-emphasized.
+            </p>
+          ) : null}
         </div>
 
         <motion.div layout={!shouldReduceMotion} className="grid gap-4 lg:grid-cols-4 lg:gap-5">
           {featuredProjects.map((project, index) => {
-            const isHighlighted =
-              !hasHighlights || highlightSet.has(project.id);
+            const isInMatchSet = highlightSet.has(project.id);
 
             return (
               <div key={project.id} className="lg:col-span-2">
                 <FeaturedProjectCard
                   project={project}
-                  isHighlighted={isHighlighted}
-                  isDimmed={hasHighlights && !isHighlighted}
+                  isDimmed={hasHighlights && !isInMatchSet}
+                  showMatchEmphasis={hasHighlights && isInMatchSet}
                   index={index}
                 />
               </div>
@@ -52,8 +57,7 @@ export function BentoGrid({ projects, highlightedIds }: BentoGridProps) {
           })}
 
           {supportingProjects.map((project, index) => {
-            const isHighlighted =
-              !hasHighlights || highlightSet.has(project.id);
+            const isInMatchSet = highlightSet.has(project.id);
             const spanClass =
               index === 2 ? "lg:col-span-2" : "lg:col-span-1";
 
@@ -61,8 +65,8 @@ export function BentoGrid({ projects, highlightedIds }: BentoGridProps) {
               <div key={project.id} className={spanClass}>
                 <ProjectCard
                   project={project}
-                  isHighlighted={isHighlighted}
-                  isDimmed={hasHighlights && !isHighlighted}
+                  isDimmed={hasHighlights && !isInMatchSet}
+                  showMatchEmphasis={hasHighlights && isInMatchSet}
                   index={index + featuredProjects.length}
                 />
               </div>

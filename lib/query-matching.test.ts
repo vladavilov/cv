@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { getProjectsByMatchedOrder, sortProjectsForDisplay } from "./query-matching";
+import {
+  getProjectsByMatchedOrder,
+  projectMatchesSkillLabel,
+  sortProjectsForDisplay,
+} from "./query-matching";
 import type { Project } from "./types";
 
 function createProject(
@@ -38,6 +42,18 @@ describe("getProjectsByMatchedOrder", () => {
   });
 });
 
+describe("projectMatchesSkillLabel", () => {
+  it("matches stack when the label is not listed in activeSkills", () => {
+    const project = createProject("p1", {
+      activeSkills: ["Python"],
+      stack: ["React", "Next.js"],
+    });
+
+    expect(projectMatchesSkillLabel(project, "React")).toBe(true);
+    expect(projectMatchesSkillLabel(project, "Vue")).toBe(false);
+  });
+});
+
 describe("sortProjectsForDisplay", () => {
   it("preserves relevance order within featured and supporting groups", () => {
     const projects = [
@@ -61,6 +77,20 @@ describe("sortProjectsForDisplay", () => {
       "supporting-second",
       "supporting-first",
     ]);
+  });
+
+  it("highlights projects that match the skill label via stack only", () => {
+    const projects = [
+      createProject("react-in-stack", {
+        activeSkills: ["Python"],
+        stack: ["React", "TypeScript"],
+      }),
+      createProject("no-react", { stack: ["Java"] }),
+    ];
+
+    const sorted = sortProjectsForDisplay(projects, [], "React");
+
+    expect(sorted.map((project) => project.id)).toEqual(["react-in-stack", "no-react"]);
   });
 
   it("keeps active-filter-only matches behind ranked query matches", () => {
