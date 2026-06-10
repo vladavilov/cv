@@ -1,5 +1,6 @@
 import { motion, useReducedMotion } from "framer-motion";
 
+import { Chip } from "@/components/ui/chip";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/lib/types";
 
@@ -8,6 +9,8 @@ type FeaturedProjectCardProps = {
   isDimmed: boolean;
   /** Strong “matches filter” styling when the grid is narrowed by search/skills */
   showMatchEmphasis: boolean;
+  /** Epoch at which THIS card entered the highlight set; keys the one-time pulse. */
+  pulseEpoch: number;
   index: number;
 };
 
@@ -15,18 +18,18 @@ export function FeaturedProjectCard({
   project,
   isDimmed,
   showMatchEmphasis,
+  pulseEpoch,
   index,
 }: FeaturedProjectCardProps) {
   const shouldReduceMotion = useReducedMotion();
 
   return (
     <motion.article
-      layout={!shouldReduceMotion}
       aria-current={showMatchEmphasis ? "true" : undefined}
       initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 24 }}
       whileInView={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
       viewport={{ once: true, amount: 0.2 }}
-      whileHover={shouldReduceMotion || isDimmed ? undefined : { y: -6 }}
+      whileHover={shouldReduceMotion || isDimmed ? undefined : { y: -6, scale: 1.01 }}
       transition={{
         duration: shouldReduceMotion ? 0 : 0.32,
         ease: "easeOut",
@@ -40,27 +43,36 @@ export function FeaturedProjectCard({
     >
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-lg border bg-[#30302e] p-5 transition-[border-color,box-shadow,background-color,filter] duration-200 md:p-6",
-          !showMatchEmphasis && !isDimmed && "border-[#30302e]",
+          "relative flex h-full flex-col overflow-hidden rounded-lg border bg-card p-5 transition-[border-color,box-shadow,background-color,filter] duration-200 md:p-6",
+          !showMatchEmphasis && !isDimmed && "border-border",
+          showMatchEmphasis && "match-glow-featured border-primary/80 bg-card-highlight",
           showMatchEmphasis &&
-            "border-[#c96442]/80 bg-[#2f2e2b] shadow-[0_0_0_1px_rgba(201,100,66,0.45),0_24px_64px_-8px_rgba(201,100,66,0.22),0_12px_32px_-12px_rgba(0,0,0,0.45)]",
-          showMatchEmphasis &&
-            "before:pointer-events-none before:absolute before:inset-y-4 before:left-0 before:w-1 before:rounded-r before:bg-[#c96442] before:content-['']",
-          isDimmed && "border-[#252524] bg-[#222120]",
+            "before:pointer-events-none before:absolute before:inset-y-4 before:left-0 before:w-1 before:rounded-r before:bg-primary before:content-['']",
+          isDimmed && "border-border-dim bg-card-dim",
         )}
       >
+        {/* Single quiet pulse when this card ENTERS the highlight set: keyed
+            by the card's own entry epoch, so surviving a set change or an
+            identical resubmit never replays it. */}
+        {showMatchEmphasis && !shouldReduceMotion ? (
+          <span
+            key={pulseEpoch}
+            aria-hidden="true"
+            className="match-pulse-overlay pointer-events-none absolute inset-0 rounded-lg"
+          />
+        ) : null}
         <div className="mb-3 flex items-center gap-3">
-          <span className="rounded-md bg-[#c96442] px-2.5 py-1 text-xs font-medium uppercase tracking-[0.5px] text-[#faf9f5]">
+          <span className="rounded-md bg-primary px-2.5 py-1 text-xs font-medium uppercase tracking-[0.5px] text-primary-foreground">
             {project.company}
           </span>
-          <span className="text-xs text-[#87867f]">{project.period}</span>
+          <span className="text-xs text-muted-foreground">{project.period}</span>
         </div>
 
         <h3 className="font-[family-name:var(--font-heading)] text-2xl font-medium leading-tight text-foreground md:text-[1.9rem]">
           {project.title}
         </h3>
 
-        <p className="mt-3 text-base leading-relaxed text-[#87867f]">
+        <p className="mt-3 text-base leading-relaxed text-muted-foreground">
           {project.summary}
         </p>
 
@@ -69,9 +81,9 @@ export function FeaturedProjectCard({
             {project.responsibilities.map((r) => (
               <li
                 key={r}
-                className="flex items-start gap-2 text-[15px] leading-relaxed text-[#b0aea5]"
+                className="flex items-start gap-2 text-[15px] leading-relaxed text-foreground-soft"
               >
-                <span className="mt-1.5 block size-1.5 shrink-0 rounded-full bg-[#c96442]" />
+                <span className="mt-1.5 block size-1.5 shrink-0 rounded-full bg-primary" />
                 {r}
               </li>
             ))}
@@ -80,12 +92,9 @@ export function FeaturedProjectCard({
 
         <div className="mt-auto flex flex-wrap gap-1.5 pt-6">
           {project.stack.map((item) => (
-            <span
-              key={item}
-              className="rounded-md border border-[#3d3d3a] bg-[#141413] px-2 py-0.5 text-xs text-[#87867f]"
-            >
+            <Chip key={item} variant="tag">
               {item}
-            </span>
+            </Chip>
           ))}
         </div>
       </div>

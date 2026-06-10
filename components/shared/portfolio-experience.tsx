@@ -1,22 +1,28 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { AgenticHero } from "@/components/shared/agentic-hero";
 import { BentoGrid } from "@/components/shared/bento-grid";
+import { CommandPalette } from "@/components/shared/command-palette";
 import { ContactCta } from "@/components/shared/contact-cta";
+import { DiscoveryToast } from "@/components/shared/discovery-toast";
 import { InteractiveSkillWeb } from "@/components/shared/interactive-skill-web";
 import { ProofLinksPanel } from "@/components/shared/proof-links-panel";
 import { ResponsePanel } from "@/components/shared/response-panel";
+import { SearchParamsSync } from "@/components/shared/search-params-sync";
+import { SectionReveal } from "@/components/shared/section-reveal";
 import { StatusHeader } from "@/components/shared/status-header";
-import type { ThoughtTraceStep } from "@/components/shared/thought-trace";
-import { getChatFallbackFromRequest } from "@/lib/fallback-responses";
 import {
-  getProjectsByMatchedOrder,
+  useExperienceSearch,
+  type ExperienceSearchCallbacks,
+} from "@/hooks/use-experience-search";
+import { useExploration } from "@/hooks/use-exploration";
+import { rankPromptSuggestions } from "@/lib/exploration";
+import {
   getPromptSuggestions,
   matchProjects,
   projectMatchesSkillLabel,
-  sortProjectsForDisplay,
 } from "@/lib/query-matching";
 import type {
   ContactCtaContent,
@@ -24,16 +30,6 @@ import type {
   ProofLink,
   SkillGraph,
 } from "@/lib/types";
-
-const traceLabels = [
-  "Analyzing query",
-  "Matching skills",
-  "Filtering projects",
-  "Preparing response",
-] as const;
-
-/** No real project id; forces the grid into “filter active” mode when no role matches the skill. */
-const NO_SKILL_MATCH_ID = "__portfolio_no_skill_match__";
 
 type PortfolioExperienceProps = {
   projects: Project[];
@@ -48,203 +44,191 @@ export function PortfolioExperience({
   proofLinks,
   contactCta,
 }: PortfolioExperienceProps) {
-  const chips = useMemo(() => getPromptSuggestions().slice(0, 5), []);
-  const timeoutsRef = useRef<number[]>([]);
-  const requestIdRef = useRef(0);
-  const [query, setQuery] = useState("");
-  const [response, setResponse] = useState("");
-  const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [hoveredSkill, setHoveredSkill] = useState<string | null>(null);
-  const [matchedProjectIds, setMatchedProjectIds] = useState<string[]>([]);
-  const [steps, setSteps] = useState<ThoughtTraceStep[]>(
-    traceLabels.map((label) => ({ label, state: "idle" as const })),
-  );
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [panelOpen, setPanelOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  // Palette close always restores focus here (AR7): when the palette opens
+  // via ⌘K over the response drawer, the previously focused element lives in
+  // the unmounted drawer and Base UI's default restore would hit <body>.
+  const paletteTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const clearTimers = useCallback(() => {
-    timeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
-    timeoutsRef.current = [];
-  }, []);
+  const exploration = useExploration({ projects });
+
+  // onQueryCompleted is a pipeline TERMINAL event (re-fires on reloads,
+  // back/forward, identical resubmits); the exploration module dedupes by
+  // normalized query key, so wiring it directly is safe (ADR-008/009).
+  const searchCallbacks = useMemo<ExperienceSearchCallbacks>(
+    () => ({
+      onQueryCompleted: exploration.onQueryCompleted,
+      onSkillFilterApplied: exploration.onSkillFilterApplied,
+      onSkillFilterCleared: exploration.onSkillFilterCleared,
+    }),
+    [
+      exploration.onQueryCompleted,
+      exploration.onSkillFilterApplied,
+      exploration.onSkillFilterCleared,
+    ],
+  );
+
+  const search = useExperienceSearch({ projects, callbacks: searchCallbacks });
+  const { panelOpen, closePanel, submit, setFilter } = search;
+
+  const suggestions = useMemo(() => getPromptSuggestions(), []);
+
+  // Each suggestion's reachable projects, computed with the SAME matcher its
+  // query runs through on submit (read-only use of matchProjects token
+  // scoring) — a skill-label shortcut can misclassify a suggestion as fully
+  // explored when its real query would surface more. matchProjects returns
+  // only real project ids (the no-match grid sentinel is added later by the
+  // highlight merge in use-experience-search), and projects are static, so
+  // this computes once.
+  const suggestionProjectIds = useMemo(
+    () =>
+      new Map(
+        suggestions.map((suggestion) => [
+          suggestion.query,
+          matchProjects(suggestion.query, projects).matchedProjectIds,
+        ]),
+      ),
+    [projects, suggestions],
+  );
+
+  // Adaptive prompt chips: ranked against the FROZEN exploration snapshot
+  // (updates only when a query completes), so the row never reorders
+  // mid-typing or on filter clicks.
+  const chips = useMemo(
+    () =>
+      rankPromptSuggestions(
+        suggestions,
+        exploration.chipRankingState,
+        suggestionProjectIds,
+      ).slice(0, 5),
+    [suggestions, suggestionProjectIds, exploration.chipRankingState],
+  );
+
+  // Palette lists filterable skills only — dead-end graph labels that match
+  // zero projects (e.g. "React") would be no-op commands.
+  const paletteSkills = useMemo(
+    () =>
+      skillGraph.nodes
+        .map((node) => node.label)
+        .filter((label) =>
+          projects.some((project) => projectMatchesSkillLabel(project, label)),
+        ),
+    [projects, skillGraph.nodes],
+  );
+
+  // MUTEX (palette ↔ response drawer): opening the palette closes the
+  // drawer; anything that opens the drawer (a search pipeline starting,
+  // incl. URL-driven runs) closes the palette via the effect below.
+  const handlePaletteOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (nextOpen) {
+        closePanel();
+      }
+      setPaletteOpen(nextOpen);
+    },
+    [closePanel],
+  );
 
   useEffect(() => {
-    return () => clearTimers();
-  }, [clearTimers]);
+    if (panelOpen) {
+      setPaletteOpen(false);
+    }
+  }, [panelOpen]);
 
-  const runSearch = useCallback(
-    (nextQuery: string) => {
-      clearTimers();
-
-      const normalized = nextQuery.trim();
-
-      if (!normalized) {
-        setQuery("");
-        setMatchedProjectIds([]);
-        setActiveFilter(null);
-        setResponse("");
-        setIsStreaming(false);
-        setSteps(traceLabels.map((label) => ({ label, state: "idle" as const })));
-        setPanelOpen(false);
-        return;
-      }
-
-      const result = matchProjects(normalized, projects);
-      const nextFilter = result.matchedSkills[0] ?? null;
-      const nextRequestId = requestIdRef.current + 1;
-
-      requestIdRef.current = nextRequestId;
-
-      setQuery(nextQuery);
-      setMatchedProjectIds(result.matchedProjectIds);
-      setActiveFilter(nextFilter);
-      setResponse("Scanning portfolio context…");
-      setIsStreaming(true);
-      setPanelOpen(true);
-
-      traceLabels.forEach((label, index) => {
-        const timeout = window.setTimeout(() => {
-          setSteps((current) =>
-            current.map((step, stepIndex) => ({
-              label: step.label,
-              state:
-                stepIndex < index
-                  ? "done"
-                  : stepIndex === index
-                    ? "active"
-                    : "idle",
-            })),
-          );
-        }, index * 180);
-
-        timeoutsRef.current.push(timeout);
-      });
-
-      const finishTimeout = window.setTimeout(() => {
-        setSteps(traceLabels.map((label) => ({ label, state: "done" as const })));
-      }, 840);
-
-      timeoutsRef.current.push(finishTimeout);
-
-      const matchedProjects = getProjectsByMatchedOrder(projects, result.matchedProjectIds);
-      const chatRequestPayload = {
-        prompt: normalized,
-        activeFilter: nextFilter,
-        matchedSkills: result.matchedSkills,
-        projects: matchedProjects,
-      };
-      const fallbackMessage = () => getChatFallbackFromRequest(chatRequestPayload);
-
-      void (async () => {
-        try {
-          const apiResponse = await fetch("/api/chat", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify(chatRequestPayload),
-          });
-
-          if (!apiResponse.ok || !apiResponse.body) {
-            throw new Error("Streaming route unavailable.");
-          }
-
-          const reader = apiResponse.body.getReader();
-          const decoder = new TextDecoder();
-          let streamedText = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (requestIdRef.current !== nextRequestId) {
-              await reader.cancel();
-              return;
-            }
-
-            if (done) {
-              break;
-            }
-
-            streamedText += decoder.decode(value, { stream: true });
-            setResponse(streamedText);
-          }
-
-          streamedText += decoder.decode();
-
-          if (!streamedText.trim()) {
-            setResponse(fallbackMessage());
-          }
-        } catch {
-          if (requestIdRef.current === nextRequestId) {
-            setResponse(fallbackMessage());
-          }
-        } finally {
-          if (requestIdRef.current === nextRequestId) {
-            setIsStreaming(false);
-            setSteps(traceLabels.map((label) => ({ label, state: "idle" as const })));
-          }
-        }
-      })();
-    },
-    [clearTimers, projects],
+  const openPalette = useCallback(
+    () => handlePaletteOpenChange(true),
+    [handlePaletteOpenChange],
   );
 
-  const highlightedIds = useMemo(() => {
-    const ids = new Set(matchedProjectIds);
+  const handlePaletteAsk = useCallback(
+    (query: string) => {
+      setPaletteOpen(false);
+      submit(query);
+    },
+    [submit],
+  );
 
-    if (activeFilter) {
-      const skillMatches = projects.filter((project) =>
-        projectMatchesSkillLabel(project, activeFilter),
-      );
-      skillMatches.forEach((project) => ids.add(project.id));
-      if (skillMatches.length === 0 && matchedProjectIds.length === 0) {
-        ids.add(NO_SKILL_MATCH_ID);
-      }
-    }
-
-    return Array.from(ids);
-  }, [activeFilter, matchedProjectIds, projects]);
-
-  const orderedProjects = useMemo(() => {
-    return sortProjectsForDisplay(projects, matchedProjectIds, activeFilter);
-  }, [activeFilter, matchedProjectIds, projects]);
+  const handlePaletteSkillSelect = useCallback(
+    (skill: string) => {
+      setPaletteOpen(false);
+      setFilter(skill);
+    },
+    [setFilter],
+  );
 
   return (
     <>
       <a
         href="#main-content"
-        className="sr-only z-50 rounded-lg bg-[#c96442] px-4 py-2 text-sm text-[#faf9f5] focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
+        className="sr-only z-50 rounded-lg bg-primary px-4 py-2 text-sm text-primary-foreground focus:not-sr-only focus:fixed focus:left-4 focus:top-4"
       >
         Skip to content
       </a>
-      <StatusHeader />
+      {/* useSearchParams needs its own Suspense boundary so the static page
+          content keeps prerendering (see ADR-008). */}
+      <Suspense fallback={null}>
+        <SearchParamsSync onParamsChange={search.syncFromUrl} />
+      </Suspense>
+      <StatusHeader
+        progress={exploration.progress}
+        progressHydrated={exploration.hydrated}
+        paletteTriggerRef={paletteTriggerRef}
+        onOpenPalette={openPalette}
+      />
       <main id="main-content" tabIndex={-1}>
         <AgenticHero
-          query={query}
-          isStreaming={isStreaming}
+          query={search.inputValue}
+          isStreaming={search.isBusy}
           chips={chips}
-          onQueryChange={setQuery}
-          onSubmit={() => runSearch(query)}
-          onChipSelect={runSearch}
+          chipsHydrated={exploration.hydrated}
+          onQueryChange={search.setInputValue}
+          onSubmit={() => search.submit(search.inputValue)}
+          onChipSelect={search.submit}
         />
-        <BentoGrid projects={orderedProjects} highlightedIds={highlightedIds} />
-        <InteractiveSkillWeb
-          skillGraph={skillGraph}
-          activeFilter={activeFilter}
-          hoveredSkill={hoveredSkill}
-          onFilterChange={setActiveFilter}
-          onHoverChange={setHoveredSkill}
-          onClearFilter={() => setActiveFilter(null)}
+        <BentoGrid
+          projects={search.orderedProjects}
+          highlightedIds={search.highlightedIds}
         />
+        {/* Cards and proof/contact blocks animate themselves; the skill web
+            is the one section without its own entrance. */}
+        <SectionReveal>
+          <InteractiveSkillWeb
+            skillGraph={skillGraph}
+            activeFilter={search.activeFilter}
+            hoveredSkill={hoveredSkill}
+            onFilterChange={search.setFilter}
+            onHoverChange={setHoveredSkill}
+            onClearFilter={search.clearFilter}
+          />
+        </SectionReveal>
         <ProofLinksPanel proofLinks={proofLinks} />
         <ContactCta content={contactCta} />
       </main>
 
       <ResponsePanel
-        open={panelOpen}
-        response={response}
-        isStreaming={isStreaming}
-        steps={steps}
-        onClose={() => setPanelOpen(false)}
+        open={search.panelOpen}
+        response={search.response}
+        phase={search.phase}
+        isStreaming={search.isBusy}
+        steps={search.traceSteps}
+        onClose={search.closePanel}
+      />
+
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={handlePaletteOpenChange}
+        askOptions={suggestions}
+        skillOptions={paletteSkills}
+        isBusy={search.isBusy}
+        finalFocus={paletteTriggerRef}
+        onAsk={handlePaletteAsk}
+        onFilterSkill={handlePaletteSkillSelect}
+      />
+
+      <DiscoveryToast
+        toast={exploration.activeToast}
+        onDismiss={exploration.dismissToast}
       />
     </>
   );

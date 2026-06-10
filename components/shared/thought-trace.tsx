@@ -1,11 +1,9 @@
 import { LoaderCircle } from "lucide-react";
 
+import type { TraceStep } from "@/lib/experience-search-reducer";
 import { cn } from "@/lib/utils";
 
-export type ThoughtTraceStep = {
-  label: string;
-  state: "idle" | "active" | "done";
-};
+export type ThoughtTraceStep = TraceStep;
 
 type ThoughtTraceProps = {
   steps: ThoughtTraceStep[];
@@ -17,27 +15,37 @@ export function ThoughtTrace({ steps }: ThoughtTraceProps) {
       {steps.map((step) => {
         const isActive = step.state === "active";
         const isDone = step.state === "done";
+        const isSkipped = step.state === "skipped";
 
         return (
           <span
             key={step.label}
             className={cn(
-              "inline-flex items-center gap-1.5 text-xs text-[#5e5d59]",
-              isActive && "text-[#87867f]",
-              isDone && "text-[#5e5d59]",
+              "inline-flex items-center gap-1.5 text-xs text-foreground-faint",
+              isActive && "text-muted-foreground",
+              isDone && "text-foreground-faint",
+              isSkipped && "text-foreground-faint/70",
             )}
           >
             {isActive ? (
               <LoaderCircle
                 aria-hidden="true"
-                className="size-3 text-[#87867f] motion-safe:animate-spin"
+                className="size-3 text-muted-foreground motion-safe:animate-spin"
               />
             ) : isDone ? (
-              <span className="text-[#5e5d59]">✓</span>
+              <span aria-hidden="true" className="text-foreground-faint">
+                ✓
+              </span>
+            ) : isSkipped ? (
+              <span aria-hidden="true" className="text-foreground-faint/70">
+                –
+              </span>
             ) : null}
             {step.label}
+            {isDone ? <span className="sr-only">(done)</span> : null}
+            {isSkipped ? <span className="sr-only">(skipped)</span> : null}
             {step !== steps[steps.length - 1] && (
-              <span className="ml-1 text-[#3d3d3a]">→</span>
+              <span className="ml-1 text-secondary">→</span>
             )}
           </span>
         );

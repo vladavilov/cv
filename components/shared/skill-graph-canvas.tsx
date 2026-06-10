@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { forceCollide, forceX, forceY } from "d3-force";
 import { useReducedMotion } from "framer-motion";
 import ForceGraph2D, {
@@ -10,7 +10,15 @@ import ForceGraph2D, {
   type NodeObject,
 } from "react-force-graph-2d";
 
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useResizeObserver } from "@/hooks/use-resize-observer";
+import { cn } from "@/lib/utils";
+import {
+  getThemeColor,
+  themeColorFallbacks,
+  withAlpha,
+  type ThemeColorToken,
+} from "@/lib/theme-colors";
 import type { SkillGraph, SkillLink, SkillNode } from "@/lib/types";
 
 type GraphNode = SkillNode & {
@@ -27,14 +35,15 @@ type SkillGraphCanvasProps = {
   hoveredSkill: string | null;
   onFilterChange: (skill: string) => void;
   onHoverChange: (skill: string | null) => void;
+  onClearFilter: () => void;
 };
 
-const categoryColors: Record<SkillNode["category"], string> = {
-  "AI & ML": "#c96442",
-  Languages: "#d97757",
-  Frontend: "#b0aea5",
-  Backend: "#87867f",
-  DevOps: "#5e5d59",
+const categoryTokens: Record<SkillNode["category"], ThemeColorToken> = {
+  "AI & ML": "primary",
+  Languages: "accentForeground",
+  Frontend: "foregroundSoft",
+  Backend: "mutedForeground",
+  DevOps: "foregroundFaint",
 };
 
 function getNodeId(node: unknown) {
@@ -45,12 +54,28 @@ function getNodeId(node: unknown) {
   return String(node ?? "");
 }
 
+function buildCanvasColors(resolve: (token: ThemeColorToken) => string) {
+  return {
+    categories: Object.fromEntries(
+      Object.entries(categoryTokens).map(([category, token]) => [
+        category,
+        resolve(token),
+      ]),
+    ) as Record<SkillNode["category"], string>,
+    activeNode: resolve("foreground"),
+    label: withAlpha(resolve("foreground"), 0.85),
+    link: withAlpha(resolve("foregroundFaint"), 0.2),
+    linkDimmed: withAlpha(resolve("foregroundFaint"), 0.06),
+  };
+}
+
 export function SkillGraphCanvas({
   skillGraph,
   activeFilter,
   hoveredSkill,
   onFilterChange,
   onHoverChange,
+  onClearFilter,
 }: SkillGraphCanvasProps) {
   const shouldReduceMotion = useReducedMotion();
   const graphRef = useRef<
@@ -58,6 +83,16 @@ export function SkillGraphCanvas({
   >(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const { width, height } = useResizeObserver(containerRef);
+  // Render stays pure: the initial value is built from the static fallback
+  // constants, and getComputedStyle resolution happens once in an effect.
+  // The fallbacks mirror the tokens, so the first frame is already correct.
+  const [canvasColors, setCanvasColors] = useState(() =>
+    buildCanvasColors((token) => themeColorFallbacks[token]),
+  );
+
+  useEffect(() => {
+    setCanvasColors(buildCanvasColors(getThemeColor));
+  }, []);
   const graphData = useMemo(
     () =>
       skillGraph as unknown as GraphData<GraphNodeObject, GraphLinkObject>,
@@ -103,37 +138,40 @@ export function SkillGraphCanvas({
 
   if (shouldReduceMotion) {
     return (
-      <div className="rounded-lg border border-[#30302e] bg-[#30302e] p-4 md:p-5">
+      <div className="rounded-lg border border-border bg-card p-4 md:p-5">
         <div className="mb-4 flex items-center justify-between gap-4">
           <p className="text-sm font-medium text-foreground">
             Static skill map (reduced motion).
           </p>
           {activeFilter ? (
-            <span className="rounded-lg border border-[#c96442]/30 bg-[#c96442]/10 px-3 py-1 text-xs text-[#d97757]">
+            <span className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-1 text-xs text-accent-foreground">
               {activeFilter}
             </span>
           ) : null}
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+        <ToggleGroup
+          value={activeFilter ? [activeFilter] : []}
+          onValueChange={(groupValue) => {
+            const nextFilter = groupValue[0];
+
+            if (nextFilter) {
+              onFilterChange(nextFilter);
+            } else {
+              // Toggling the pressed skill off deselects → clear the filter.
+              onClearFilter();
+            }
+          }}
+          className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
+        >
           {skillGraph.nodes.map((node) => (
-            <button
-              key={node.id}
-              type="button"
-              onClick={() => onFilterChange(node.label)}
-              aria-pressed={activeFilter === node.label}
-              className={
-                activeFilter === node.label
-                  ? "rounded-lg border border-[#c96442]/30 bg-[#c96442]/10 p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                  : "rounded-lg border border-[#3d3d3a] bg-[#141413] p-4 text-left transition-colors hover:border-[#5e5d59] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-              }
-            >
+            <ToggleGroupItem key={node.id} value={node.label} variant="card">
               <p className="text-sm font-medium text-foreground">{node.label}</p>
-              <p className="mt-1 text-xs uppercase tracking-[0.5px] text-[#87867f]">
+              <p className="mt-1 text-xs uppercase tracking-[0.5px] text-muted-foreground">
                 {node.category}
               </p>
-            </button>
+            </ToggleGroupItem>
           ))}
-        </div>
+        </ToggleGroup>
       </div>
     );
   }
@@ -141,7 +179,12 @@ export function SkillGraphCanvas({
   return (
     <div
       ref={containerRef}
-      className="min-h-[420px] rounded-lg border border-[#30302e] bg-[#30302e] p-4 md:min-h-[500px] md:p-5"
+      className={cn(
+        "min-h-[420px] rounded-lg border border-border bg-card p-4 md:min-h-[500px] md:p-5",
+        // Tactile affordance: nodes are clickable filters, so hovering one
+        // must read as interactive.
+        hoveredSkill && "cursor-pointer",
+      )}
     >
       {width > 0 && height > 0 ? (
         <ForceGraph2D
@@ -189,10 +232,16 @@ export function SkillGraphCanvas({
               hoveredNeighbors.has(source) ||
               hoveredNeighbors.has(target);
 
-            return isVisible ? "rgba(94,93,89,0.2)" : "rgba(94,93,89,0.06)";
+            return isVisible ? canvasColors.link : canvasColors.linkDimmed;
           }}
           onNodeHover={(node) => {
             const currentNode = node as GraphNodeObject | null;
+
+            // force-graph does not manage the cursor; make nodes feel clickable.
+            if (containerRef.current) {
+              containerRef.current.style.cursor = currentNode ? "pointer" : "";
+            }
+
             onHoverChange(currentNode ? String(currentNode.id ?? "") : null);
           }}
           onNodeClick={(node) => {
@@ -209,23 +258,27 @@ export function SkillGraphCanvas({
             const currentNodeId = String(currentNode.id ?? "");
             const isVisible = !neighbors || neighbors.has(currentNodeId);
             const isActive = activeFilter === currentNode.label;
-            const color = categoryColors[currentNode.category];
-            const radius = Math.max(currentNode.val, 6);
+            const isHovered = hoveredSkill === currentNodeId;
+            const color = canvasColors.categories[currentNode.category];
+            // Tactile hover: the pointed-at node grows slightly and glows a
+            // touch brighter (this canvas path never renders under
+            // prefers-reduced-motion — the static list replaces it).
+            const radius = Math.max(currentNode.val, 6) * (isHovered ? 1.16 : 1);
             const fontSize = Math.max(12 / globalScale, 12);
 
             ctx.save();
             ctx.globalAlpha = isVisible ? 1 : 0.18;
             ctx.beginPath();
-            ctx.fillStyle = isActive ? "#faf9f5" : color;
+            ctx.fillStyle = isActive ? canvasColors.activeNode : color;
             ctx.shadowColor = color;
-            ctx.shadowBlur = isActive ? 28 : 14;
+            ctx.shadowBlur = isActive ? 28 : isHovered ? 22 : 14;
             ctx.arc(currentNode.x ?? 0, currentNode.y ?? 0, radius, 0, 2 * Math.PI);
             ctx.fill();
 
             ctx.font = `500 ${fontSize}px Geist, sans-serif`;
             ctx.textAlign = "left";
             ctx.textBaseline = "middle";
-            ctx.fillStyle = isActive ? "#faf9f5" : "rgba(250,249,245,0.85)";
+            ctx.fillStyle = isActive ? canvasColors.activeNode : canvasColors.label;
             ctx.shadowBlur = 0;
             ctx.fillText(
               currentNode.label,

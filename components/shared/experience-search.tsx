@@ -1,5 +1,8 @@
 import { Search } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 type ExperienceSearchProps = {
   value: string;
   onChange: (value: string) => void;
@@ -15,7 +18,7 @@ export function ExperienceSearch({
 }: ExperienceSearchProps) {
   return (
     <form
-      className="flex items-center gap-3 rounded-xl border border-[#30302e] bg-[#30302e] px-4 py-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
+      className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 transition-colors focus-within:border-ring focus-within:ring-3 focus-within:ring-ring/50"
       onSubmit={(event) => {
         event.preventDefault();
         if (isStreaming) {
@@ -24,11 +27,12 @@ export function ExperienceSearch({
         onSubmit();
       }}
     >
-      <Search aria-hidden="true" className="size-5 shrink-0 text-[#87867f]" />
+      <Search aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
       <label className="sr-only" htmlFor="experience-query">
         Search my experience
       </label>
-      <input
+      <Input
+        variant="ghost"
         id="experience-query"
         name="experience-query"
         type="text"
@@ -37,15 +41,10 @@ export function ExperienceSearch({
         autoComplete="off"
         spellCheck={false}
         placeholder="Ask about Vlad's experience, projects, skills, …"
-        className="min-w-0 flex-1 bg-transparent text-[15px] text-foreground placeholder:text-[#5e5d59] focus:outline-none"
       />
-      <button
-        type="submit"
-        disabled={isStreaming}
-        className="shrink-0 rounded-lg bg-[#c96442] px-4 py-2 text-sm font-medium text-[#faf9f5] transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 hover:bg-[#d97757] disabled:opacity-50"
-      >
+      <Button type="submit" disabled={isStreaming}>
         {isStreaming ? "Searching…" : "Search"}
-      </button>
+      </Button>
     </form>
   );
 }

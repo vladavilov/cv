@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Analytics } from "@vercel/analytics/next";
 import { Geist, Geist_Mono } from "next/font/google";
+
+import { themeColorFallbacks } from "@/lib/theme-colors";
+import { cn } from "@/lib/utils";
+
 import "./globals.css";
 
 const geistSans = Geist({
@@ -20,7 +24,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#141413",
+  themeColor: themeColorFallbacks.background,
 };
 
 export default function RootLayout({
@@ -31,7 +35,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-background text-foreground antialiased`}
+        className={cn(
+          geistSans.variable,
+          geistMono.variable,
+          "min-h-screen bg-background text-foreground antialiased",
+        )}
       >
         {children}
         <Analytics />

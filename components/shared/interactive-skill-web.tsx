@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 
 import { ActiveFilterChip } from "@/components/shared/active-filter-chip";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import type { SkillGraph } from "@/lib/types";
 
 const SkillGraphCanvas = dynamic(
@@ -44,9 +45,7 @@ export function InteractiveSkillWeb({
             </p>
           </div>
 
-          {activeFilter ? (
-            <ActiveFilterChip value={activeFilter} onClear={onClearFilter} />
-          ) : null}
+          <ActiveFilterChip value={activeFilter} onClear={onClearFilter} />
         </div>
 
         <div>
@@ -56,33 +55,39 @@ export function InteractiveSkillWeb({
             hoveredSkill={hoveredSkill}
             onFilterChange={onFilterChange}
             onHoverChange={onHoverChange}
+            onClearFilter={onClearFilter}
           />
 
-          <div aria-live="polite" className="sr-only">
-            {activeFilter
-              ? `Filtering projects by ${activeFilter}.`
-              : "Showing all projects."}
-          </div>
+          {/* Filter changes are announced by the BentoGrid status region
+              (single source of truth); duplicating a polite live region here
+              caused double announcements on every filter click. The pressed
+              toggle state below still conveys the active filter to SR users. */}
 
-          <div className="mt-4 flex flex-wrap gap-2">
+          <ToggleGroup
+            value={activeFilter ? [activeFilter] : []}
+            onValueChange={(groupValue) => {
+              const nextFilter = groupValue[0];
+
+              if (nextFilter) {
+                onFilterChange(nextFilter);
+              } else {
+                // Toggling the pressed skill off deselects → clear the filter.
+                onClearFilter();
+              }
+            }}
+            className="mt-4"
+          >
             {skillGraph.nodes.map((node) => (
-              <button
+              <ToggleGroupItem
                 key={node.id}
-                type="button"
-                className={
-                  node.label === activeFilter
-                    ? "rounded-lg border border-[#c96442]/30 bg-[#c96442]/10 px-3 py-1.5 text-sm text-[#d97757] transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 hover:bg-[#c96442]/14"
-                    : "rounded-lg border border-[#30302e] bg-[#30302e] px-3 py-1.5 text-sm text-[#b0aea5] transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 hover:bg-[#3d3d3a] hover:text-foreground"
-                }
-                onClick={() => onFilterChange(node.label)}
+                value={node.label}
                 onFocus={() => onHoverChange(node.id)}
                 onBlur={() => onHoverChange(null)}
-                aria-pressed={node.label === activeFilter}
               >
                 {node.label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </div>
+          </ToggleGroup>
         </div>
       </div>
     </section>

@@ -35,6 +35,13 @@
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-foreground-strong: var(--foreground-strong);
+  --color-foreground-soft: var(--foreground-soft);
+  --color-foreground-faint: var(--foreground-faint);
+  --color-card-highlight: var(--card-highlight);
+  --color-card-dim: var(--card-dim);
+  --color-border-dim: var(--border-dim);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
@@ -57,6 +64,13 @@
   --popover-foreground: #faf9f5;
   --primary: #c96442;
   --primary-foreground: #faf9f5;
+  --primary-hover: #d97757;
+  --foreground-strong: #e3e2de;
+  --foreground-soft: #b0aea5;
+  --foreground-faint: #5e5d59;
+  --card-highlight: #2f2e2b;
+  --card-dim: #222120;
+  --border-dim: #252524;
   --secondary: #3d3d3a;
   --secondary-foreground: #faf9f5;
   --muted: #30302e;
@@ -106,7 +120,7 @@
     @apply border-border outline-ring/50;
   }
   *::selection {
-    background: rgba(201, 100, 66, 0.28);
+    background: color-mix(in srgb, var(--primary) 28%, transparent);
     color: var(--foreground);
   }
   body {
@@ -128,13 +142,28 @@
   }
 
   .warm-card {
-    background: #30302e;
-    box-shadow: 0px 0px 0px 1px #30302e, rgba(0, 0, 0, 0.05) 0px 4px 24px;
-    @apply border border-[#30302e];
+    background: var(--card);
+    box-shadow: 0px 0px 0px 1px var(--border), rgba(0, 0, 0, 0.05) 0px 4px 24px;
+    @apply border border-border;
+  }
+
+  /* Match-emphasis glows for project cards; primary at the original rgba alphas. */
+  .match-glow {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--primary) 40%, transparent),
+      0 18px 48px -10px color-mix(in srgb, var(--primary) 20%, transparent),
+      0 10px 28px -12px rgba(0, 0, 0, 0.4);
+  }
+
+  .match-glow-featured {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--primary) 45%, transparent),
+      0 24px 64px -8px color-mix(in srgb, var(--primary) 22%, transparent),
+      0 12px 32px -12px rgba(0, 0, 0, 0.45);
   }
 
   .section-kicker {
-    @apply text-xs font-medium uppercase tracking-[0.5px] text-[#87867f];
+    @apply text-xs font-medium uppercase tracking-[0.5px] text-muted-foreground;
   }
 
   .section-heading {
@@ -143,7 +172,24 @@
   }
 
   .section-copy {
-    @apply max-w-2xl text-[15px] leading-relaxed text-[#87867f] md:text-base;
+    @apply max-w-2xl text-[15px] leading-relaxed text-muted-foreground md:text-base;
+  }
+
+  /* One-shot highlight pulse for cards that just entered the filtered/matched
+     set. Mounted only while emphasized; `forwards` keeps it invisible after
+     the single run. Reduced motion zeroes the duration (global rule below). */
+  .match-pulse-overlay {
+    background: color-mix(in srgb, var(--primary) 12%, transparent);
+    animation: match-pulse-fade 650ms ease-out 1 forwards;
+  }
+}
+
+@keyframes match-pulse-fade {
+  0% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
   }
 }
 

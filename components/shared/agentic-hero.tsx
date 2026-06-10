@@ -12,6 +12,8 @@ type AgenticHeroProps = {
   query: string;
   isStreaming: boolean;
   chips: PromptChip[];
+  /** True once the stored exploration session has been restored (see use-exploration). */
+  chipsHydrated: boolean;
   onQueryChange: (value: string) => void;
   onSubmit: () => void;
   onChipSelect: (query: string) => void;
@@ -21,6 +23,7 @@ export function AgenticHero({
   query,
   isStreaming,
   chips,
+  chipsHydrated,
   onQueryChange,
   onSubmit,
   onChipSelect,
@@ -36,7 +39,7 @@ export function AgenticHero({
             >
               AI Architect
             </h1>
-            <p className="text-xl leading-relaxed text-[#5e5d59]">
+            <p className="text-xl leading-relaxed text-foreground-faint">
               Software Engineering Leader with 15+ years in financial markets, trading platforms, and agentic AI systems.
             </p>
           </div>
@@ -48,7 +51,12 @@ export function AgenticHero({
             isStreaming={isStreaming}
           />
 
-          <PromptChips chips={chips} onSelect={onChipSelect} disabled={isStreaming} />
+          <PromptChips
+            chips={chips}
+            hydrated={chipsHydrated}
+            onSelect={onChipSelect}
+            disabled={isStreaming}
+          />
         </div>
       </div>
     </section>
