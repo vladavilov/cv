@@ -10,4 +10,11 @@ export default defineConfig({
       "@": fileURLToPath(new URL(".", import.meta.url)),
     },
   },
+  // tsconfig uses `jsx: preserve` (Next.js transforms JSX itself), so tests
+  // that import .tsx components need the automatic JSX runtime applied here.
+  oxc: {
+    jsx: {
+      runtime: "automatic",
+    },
+  },
 });

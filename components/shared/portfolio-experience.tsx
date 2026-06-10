@@ -203,8 +203,10 @@ export function PortfolioExperience({
           />
         </SectionReveal>
         <ProofLinksPanel proofLinks={proofLinks} />
-        <ContactCta content={contactCta} />
       </main>
+      {/* Outside <main> so the <footer> maps to the contentinfo landmark
+          (a footer nested in main is not exposed as a landmark to AT). */}
+      <ContactCta content={contactCta} />
 
       <ResponsePanel
         open={search.panelOpen}

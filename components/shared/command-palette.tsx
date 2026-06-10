@@ -76,7 +76,16 @@ export function CommandPalette({
   // onOpenChange enforces the palette↔drawer mutex.
   useEffect(() => {
     const handleKeydown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+      // Bare Cmd/Ctrl+K only: Shift/Alt variants belong to the browser
+      // (e.g. Ctrl+Shift+K opens the Firefox console), and ignoring repeats
+      // prevents rapid toggling while the chord is held.
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        !event.shiftKey &&
+        !event.altKey &&
+        !event.repeat &&
+        event.key.toLowerCase() === "k"
+      ) {
         event.preventDefault();
         onOpenChange(!openRef.current);
       }
